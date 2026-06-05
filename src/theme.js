@@ -1,0 +1,15 @@
+export const PAL = {
+  bg: '#FFF6E5',
+  surface: '#FFFFFF',
+  ink: '#2D2A4A',
+  primary: '#FFC93C',
+  primaryDark: '#E8A91A',
+  coral: '#FF6B6B',
+  coralDark: '#E04E4E',
+  mint: '#4ECDC4',
+  mintDark: '#3AAFA9',
+  lavender: '#A78BFA',
+  lavenderDark: '#8B6BE0',
+  sky: '#5DADE2',
+  skyDark: '#3A8FC7',
+};
