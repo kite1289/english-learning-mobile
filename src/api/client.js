@@ -1,34 +1,38 @@
 import axios from 'axios';
-import { NativeModules, Platform } from 'react-native';
 
 const CMS_API_URL = process.env.EXPO_PUBLIC_CMS_API_URL;
-const CMS_PORT = process.env.EXPO_PUBLIC_CMS_PORT || '8000';
+const DEFAULT_CMS_API_URL = 'http://139.162.60.184:8001/api';
 
 const normalizeUrl = (url) => url.replace(/\/+$/, '');
 
-const getExpoDevServerHost = () => {
-  const scriptURL = NativeModules?.SourceCode?.scriptURL;
-  if (!scriptURL) return null;
-
-  const match = scriptURL.match(/^https?:\/\/([^/:?#]+)(?::\d+)?(?:[/?#]|$)/);
-  return match?.[1] || null;
-};
-
-const getDefaultHost = () => {
-  const devServerHost = getExpoDevServerHost();
-
-  if (devServerHost && !['localhost', '127.0.0.1', '::1'].includes(devServerHost)) {
-    return devServerHost;
-  }
-
-  return Platform.OS === 'android' ? '10.0.2.2' : '127.0.0.1';
-};
-
 export const API_URL = normalizeUrl(
-  CMS_API_URL || `http://${getDefaultHost()}:${CMS_PORT}/api`
+  CMS_API_URL || DEFAULT_CMS_API_URL
 );
 
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '0.0.0.0', '::1']);
+const REMOTE_URL_PATTERN = /https?:\/\//i;
+
+const safeDecodeURIComponent = (value) => {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+};
+
+const extractWrappedRemoteUrl = (value) => {
+  const decodedValue = safeDecodeURIComponent(value);
+  const remoteUrlMatch = decodedValue.match(REMOTE_URL_PATTERN);
+  if (!remoteUrlMatch) return null;
+
+  const remoteUrlIndex = remoteUrlMatch.index;
+  if (remoteUrlIndex === 0) return null;
+
+  const prefix = decodedValue.slice(0, remoteUrlIndex);
+  if (!prefix.includes('/storage/')) return null;
+
+  return decodedValue.slice(remoteUrlIndex);
+};
 
 const getApiOrigin = () => {
   try {
@@ -44,12 +48,17 @@ export const normalizeMediaUrl = (url) => {
   const value = String(url).trim();
   if (!value) return null;
 
+  const wrappedRemoteUrl = extractWrappedRemoteUrl(value);
+  if (wrappedRemoteUrl) return wrappedRemoteUrl;
+
   const apiOrigin = getApiOrigin();
   if (!apiOrigin) return value;
 
   try {
     const apiUrl = new URL(apiOrigin);
     const mediaUrl = new URL(value);
+    const wrappedAbsoluteRemoteUrl = extractWrappedRemoteUrl(mediaUrl.pathname);
+    if (wrappedAbsoluteRemoteUrl) return wrappedAbsoluteRemoteUrl;
 
     if (LOCAL_HOSTS.has(mediaUrl.hostname) && mediaUrl.host !== apiUrl.host) {
       mediaUrl.protocol = apiUrl.protocol;

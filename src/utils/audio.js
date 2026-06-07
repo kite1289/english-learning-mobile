@@ -20,12 +20,24 @@ export const usePronunciationAudio = (source, { autoPlayKey, autoPlayDelay = 0 }
   const player = useAudioPlayer(source || null);
   const status = useAudioPlayerStatus(player);
   const pendingPlayRef = useRef(false);
+  const playRef = useRef(null);
+  const sourceVersionRef = useRef(0);
+
+  useEffect(() => {
+    sourceVersionRef.current += 1;
+    pendingPlayRef.current = false;
+  }, [source]);
 
   const play = useCallback(async () => {
     if (!source) return;
 
+    const playSourceVersion = sourceVersionRef.current;
     pendingPlayRef.current = true;
     await ensurePronunciationAudioMode();
+
+    if (playSourceVersion !== sourceVersionRef.current) {
+      return;
+    }
 
     if (!player.isLoaded && !status.isLoaded) {
       return;
@@ -40,6 +52,10 @@ export const usePronunciationAudio = (source, { autoPlayKey, autoPlayDelay = 0 }
       console.log('Error playing sound:', error);
     }
   }, [player, source, status.isLoaded]);
+
+  useEffect(() => {
+    playRef.current = play;
+  }, [play]);
 
   useEffect(() => {
     if (!pendingPlayRef.current || !source || (!player.isLoaded && !status.isLoaded)) {
@@ -62,14 +78,14 @@ export const usePronunciationAudio = (source, { autoPlayKey, autoPlayDelay = 0 }
     }
 
     const timeout = setTimeout(() => {
-      play();
+      playRef.current?.();
     }, autoPlayDelay);
 
     return () => {
       clearTimeout(timeout);
       pendingPlayRef.current = false;
     };
-  }, [autoPlayDelay, autoPlayKey, play, source]);
+  }, [autoPlayDelay, autoPlayKey, source]);
 
   return { play };
 };
