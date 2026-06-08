@@ -6,6 +6,7 @@ import Mascot from '../components/Mascot';
 import Pop from '../components/Pop';
 import Confetti from '../components/Confetti';
 import { PAL } from '../theme';
+import { usePronunciationAudio } from '../utils/audio';
 import { playSfx } from '../utils/sfx';
 
 const MAX_PAIRS = 6;
@@ -36,7 +37,13 @@ export default function MatchScreen({ route, navigation }) {
   const [matched, setMatched] = useState([]); // matched card keys
   const [shakeMap, setShakeMap] = useState({});
   const [busy, setBusy] = useState(false);
+  const [matchedAudioCue, setMatchedAudioCue] = useState(null);
   const navigatedRef = useRef(false);
+  usePronunciationAudio(matchedAudioCue?.audio_url, {
+    autoPlayKey: matchedAudioCue?.key,
+    autoPlayDelay: 300,
+    fallbackText: matchedAudioCue?.word_en,
+  });
 
   const onTap = (i) => {
     const card = deck[i];
@@ -54,6 +61,7 @@ export default function MatchScreen({ route, navigation }) {
 
     if (deck[j].pair === card.pair) {
       playSfx('correct');
+      setMatchedAudioCue({ ...card.word, key: `${card.pair}-${Date.now()}` });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       setTimeout(() => {
         setMatched((m) => [...m, deck[j].key, card.key]);

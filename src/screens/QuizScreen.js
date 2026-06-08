@@ -30,6 +30,7 @@ export default function QuizScreen({ route, navigation }) {
   const { play: playSound } = usePronunciationAudio(w?.audio_url, {
     autoPlayKey: idx,
     autoPlayDelay: 500,
+    fallbackText: w?.word_en,
   });
 
   // 4 options for the current word.
@@ -113,7 +114,7 @@ export default function QuizScreen({ route, navigation }) {
         <Pop popKey={idx} entrance>
           <TouchableOpacity
             style={[styles.bigAudioBtn, { backgroundColor: tColor, borderBottomColor: tColorDark }]}
-            onPress={playSound}
+            onPress={() => playSound()}
             accessibilityLabel="Nghe phát âm"
           >
             <Text style={{ fontSize: 50, color: '#fff' }}>🔊</Text>
@@ -130,10 +131,11 @@ export default function QuizScreen({ route, navigation }) {
           let bg = PAL.surface;
           let borderColor = 'rgba(0,0,0,0.06)';
           let shadowColor = 'rgba(0,0,0,0.08)';
+          let shadowOpacity = 1;
           if (highlight) {
             bg = PAL.mint + '33';
             borderColor = PAL.mintDark;
-            shadowColor = PAL.mintDark;
+            shadowOpacity = 0;
           } else if (isDimmed) {
             bg = PAL.surface;
             borderColor = 'rgba(0,0,0,0.06)';
@@ -153,7 +155,7 @@ export default function QuizScreen({ route, navigation }) {
                 accessibilityLabel={opt.word_en}
                 style={[
                   styles.optionBtn,
-                  { backgroundColor: bg, borderColor, shadowColor, opacity: isDimmed ? 0.4 : 1 },
+                  { backgroundColor: bg, borderColor, shadowColor, shadowOpacity, opacity: isDimmed ? 0.4 : 1 },
                 ]}
               >
                 {opt.image_url ? (

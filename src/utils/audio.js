@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import * as Speech from 'expo-speech';
 
 let audioModePromise = null;
 
@@ -16,66 +17,65 @@ const ensurePronunciationAudioMode = async () => {
   await audioModePromise;
 };
 
-export const usePronunciationAudio = (source, { autoPlayKey, autoPlayDelay = 0 } = {}) => {
-  const player = useAudioPlayer(source || null);
+const getPlaybackRate = (value) => (typeof value === 'number' && Number.isFinite(value) ? value : 1);
+
+const speakFallback = (text, requestedRate = 1) => {
+  const value = typeof text === 'string' ? text.trim() : '';
+  if (!value) return;
+  const rate = getPlaybackRate(requestedRate);
+
+  Speech.stop().catch(() => {});
+  Speech.speak(value, { language: 'en-US', rate: Math.min(Math.max(rate * 0.85, 0.6), 1) });
+};
+
+export const usePronunciationAudio = (source, { autoPlayKey, autoPlayDelay = 0, fallbackText } = {}) => {
+  const audioSource = useMemo(() => (source ? { uri: source } : null), [source]);
+  const player = useAudioPlayer(audioSource, {
+    updateInterval: 150,
+  });
   const status = useAudioPlayerStatus(player);
-  const pendingPlayRef = useRef(false);
   const playRef = useRef(null);
   const sourceVersionRef = useRef(0);
 
   useEffect(() => {
     sourceVersionRef.current += 1;
-    pendingPlayRef.current = false;
   }, [source]);
 
-  const play = useCallback(async (rate = 1) => {
-    if (!source) return;
+  const play = useCallback(async (requestedRate = 1) => {
+    const rate = getPlaybackRate(requestedRate);
+
+    if (!source) {
+      speakFallback(fallbackText, rate);
+      return;
+    }
 
     const playSourceVersion = sourceVersionRef.current;
-    pendingPlayRef.current = true;
     await ensurePronunciationAudioMode();
 
     if (playSourceVersion !== sourceVersionRef.current) {
       return;
     }
 
-    if (!player.isLoaded && !status.isLoaded) {
-      return;
-    }
-
-    pendingPlayRef.current = false;
-
     try {
       player.setPlaybackRate?.(rate, 'high');
-      await player.seekTo(0);
+
+      if (player.isLoaded || status.isLoaded || status.didJustFinish) {
+        await player.seekTo(0).catch(() => {});
+      }
+
       player.play();
     } catch (error) {
       console.log('Error playing sound:', error);
+      speakFallback(fallbackText, rate);
     }
-  }, [player, source, status.isLoaded]);
+  }, [fallbackText, player, source, status.didJustFinish, status.isLoaded]);
 
   useEffect(() => {
     playRef.current = play;
   }, [play]);
 
   useEffect(() => {
-    if (!pendingPlayRef.current || !source || (!player.isLoaded && !status.isLoaded)) {
-      return;
-    }
-
-    pendingPlayRef.current = false;
-
-    try { player.setPlaybackRate?.(1, 'high'); } catch {}
-    player.seekTo(0)
-      .then(() => player.play())
-      .catch((error) => {
-        console.log('Error playing sound:', error);
-      });
-  }, [player, source, status.isLoaded]);
-
-  useEffect(() => {
-    if (autoPlayKey === undefined || !source) {
-      pendingPlayRef.current = false;
+    if (autoPlayKey === undefined || (!source && !fallbackText)) {
       return undefined;
     }
 
@@ -85,9 +85,8 @@ export const usePronunciationAudio = (source, { autoPlayKey, autoPlayDelay = 0 }
 
     return () => {
       clearTimeout(timeout);
-      pendingPlayRef.current = false;
     };
-  }, [autoPlayDelay, autoPlayKey, source]);
+  }, [autoPlayDelay, autoPlayKey, fallbackText, source]);
 
   return { play };
 };

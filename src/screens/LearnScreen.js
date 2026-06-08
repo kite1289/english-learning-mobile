@@ -33,6 +33,7 @@ export default function LearnScreen({ route, navigation }) {
   const { play: playSound } = usePronunciationAudio(currentWord?.audio_url, {
     autoPlayKey: idx,
     autoPlayDelay: 300,
+    fallbackText: currentWord?.word_en,
   });
 
   const onNext = () => {
@@ -99,7 +100,7 @@ export default function LearnScreen({ route, navigation }) {
           <View style={styles.audioRow}>
             <TouchableOpacity
               style={[styles.audioBtn, { backgroundColor: tColor, borderBottomColor: tColorDark }]}
-              onPress={playSound}
+              onPress={() => playSound()}
               accessibilityLabel="Nghe phát âm"
             >
               <Text style={{ fontSize: 24, color: '#fff' }}>🔊</Text>
