@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Speech from 'expo-speech';
 import { PAL } from '../theme';
 
 const COUNTS = [
@@ -15,9 +14,6 @@ export default function CountScreen({ route, navigation }) {
   const insets = useSafeAreaInsets();
 
   const onPickCount = (c) => {
-    // Say the number in English so choosing also teaches counting.
-    Speech.stop();
-    Speech.speak(c.en, { language: 'en-US', rate: 0.85 });
     navigation.navigate('Learn', { topic, count: c.n });
   };
 
