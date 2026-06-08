@@ -13,3 +13,15 @@ export const PAL = {
   sky: '#5DADE2',
   skyDark: '#3A8FC7',
 };
+
+// Pick a readable text color (dark ink vs white) for a given background hex,
+// based on perceived luminance. Light/saturated backgrounds (yellow, mint) get
+// dark text so contrast meets accessibility for young readers + parents.
+export const readableOn = (hex) => {
+  if (!hex || hex[0] !== '#') return '#fff';
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return lum > 0.62 ? PAL.ink : '#fff';
+};

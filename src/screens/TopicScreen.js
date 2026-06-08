@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Mascot from '../components/Mascot';
-import { PAL } from '../theme';
+import { PAL, readableOn } from '../theme';
 import { getTopics } from '../api/client';
+import { useProgress } from '../context/ProgressContext';
 
 export default function TopicScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { streak, coins, outfit } = useProgress();
   const [topics, setTopics] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -24,15 +26,27 @@ export default function TopicScreen({ navigation }) {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Mascot size={48} />
+          <Mascot size={48} outfit={outfit} />
           <View style={{ marginLeft: 10 }}>
             <Text style={styles.greetingText}>Xin chào, Bé!</Text>
             <Text style={styles.titleText}>Học gì hôm nay? ✨</Text>
           </View>
         </View>
-        <View style={styles.fireBadge}>
-          <Text style={{ fontSize: 18 }}>🔥</Text>
-          <Text style={styles.fireText}>7</Text>
+        <View style={styles.badgeRow}>
+          <View style={styles.fireBadge}>
+            <Text style={{ fontSize: 18 }}>🔥</Text>
+            <Text style={styles.fireText}>{streak}</Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.fireBadge, styles.bagBadge]}
+            onPress={() => navigation.navigate('Collection')}
+            accessibilityLabel="Bộ sưu tập"
+            activeOpacity={0.8}
+          >
+            <Text style={{ fontSize: 18 }}>🎒</Text>
+            <Text style={styles.fireText}>{coins}</Text>
+            <Text style={{ fontSize: 14 }}>🪙</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -47,29 +61,33 @@ export default function TopicScreen({ navigation }) {
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.grid}>
-          {topics.map((t, i) => (
-            <TouchableOpacity
-              key={t.id}
-              activeOpacity={0.8}
-              onPress={() => navigation.navigate('Count', { topic: t })}
-              style={[
-                styles.topicCard,
-                {
-                  backgroundColor: t.color ? PAL[t.color] : PAL.primary,
-                  transform: [{ rotate: i % 2 === 0 ? '-1deg' : '1deg' }],
-                  shadowColor: t.color ? PAL[`${t.color}Dark`] : PAL.primaryDark,
-                }
-              ]}
-            >
-              <View style={styles.cardBgDeco1} />
-              <View style={styles.cardBgDeco2} />
-              <Text style={styles.emojiText}>{t.emoji}</Text>
-              <View>
-                <Text style={styles.cardEn}>{t.name_en}</Text>
-                <Text style={styles.cardVi}>{t.name_vi}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+          {topics.map((t, i) => {
+            const cardBg = t.color ? PAL[t.color] : PAL.primary;
+            const textColor = readableOn(cardBg);
+            return (
+              <TouchableOpacity
+                key={t.id}
+                activeOpacity={0.8}
+                onPress={() => navigation.navigate('Count', { topic: t })}
+                style={[
+                  styles.topicCard,
+                  {
+                    backgroundColor: cardBg,
+                    transform: [{ rotate: i % 2 === 0 ? '-1deg' : '1deg' }],
+                    shadowColor: t.color ? PAL[`${t.color}Dark`] : PAL.primaryDark,
+                  }
+                ]}
+              >
+                <View style={styles.cardBgDeco1} />
+                <View style={styles.cardBgDeco2} />
+                <Text style={styles.emojiText}>{t.emoji}</Text>
+                <View>
+                  <Text style={[styles.cardEn, { color: textColor }]}>{t.name_en}</Text>
+                  <Text style={[styles.cardVi, { color: textColor, opacity: 0.75 }]}>{t.name_vi}</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
       )}
     </View>
@@ -85,12 +103,14 @@ const styles = StyleSheet.create({
   headerLeft: { flexDirection: 'row', alignItems: 'center' },
   greetingText: { fontSize: 13, color: PAL.ink, opacity: 0.6, fontWeight: '600' },
   titleText: { fontSize: 18, color: PAL.ink, fontWeight: '700' },
+  badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   fireBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 12, paddingVertical: 6,
     borderRadius: 999, backgroundColor: PAL.surface,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 0,
   },
+  bagBadge: { backgroundColor: PAL.primary + '33' },
   fireText: { fontSize: 16, color: PAL.ink, fontWeight: '700' },
   subtitleContainer: { paddingHorizontal: 22, paddingTop: 24, paddingBottom: 14 },
   sectionTitle: { fontSize: 32, color: PAL.ink, fontWeight: '700' },

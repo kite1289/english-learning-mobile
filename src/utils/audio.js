@@ -28,7 +28,7 @@ export const usePronunciationAudio = (source, { autoPlayKey, autoPlayDelay = 0 }
     pendingPlayRef.current = false;
   }, [source]);
 
-  const play = useCallback(async () => {
+  const play = useCallback(async (rate = 1) => {
     if (!source) return;
 
     const playSourceVersion = sourceVersionRef.current;
@@ -46,6 +46,7 @@ export const usePronunciationAudio = (source, { autoPlayKey, autoPlayDelay = 0 }
     pendingPlayRef.current = false;
 
     try {
+      player.setPlaybackRate?.(rate, 'high');
       await player.seekTo(0);
       player.play();
     } catch (error) {
@@ -64,6 +65,7 @@ export const usePronunciationAudio = (source, { autoPlayKey, autoPlayDelay = 0 }
 
     pendingPlayRef.current = false;
 
+    try { player.setPlaybackRate?.(1, 'high'); } catch {}
     player.seekTo(0)
       .then(() => player.play())
       .catch((error) => {

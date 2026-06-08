@@ -1,20 +1,24 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Speech from 'expo-speech';
 import { PAL } from '../theme';
 
 const COUNTS = [
-  { n: 5,  label: 'Dễ thương',   mins: '~3 phút', stars: 1, color: 'mint' },
-  { n: 10, label: 'Vừa phải',    mins: '~6 phút', stars: 2, color: 'primary' },
-  { n: 15, label: 'Siêu trí nhớ', mins: '~10 phút', stars: 3, color: 'coral' },
+  { n: 5,  en: 'Five',    label: 'Dễ thương',    stars: 1, color: 'mint' },
+  { n: 10, en: 'Ten',     label: 'Vừa phải',     stars: 2, color: 'primary' },
+  { n: 15, en: 'Fifteen', label: 'Siêu trí nhớ', stars: 3, color: 'coral' },
 ];
 
 export default function CountScreen({ route, navigation }) {
   const { topic } = route.params;
   const insets = useSafeAreaInsets();
-  
-  const onPickCount = (n) => {
-    navigation.navigate('Learn', { topic, count: n });
+
+  const onPickCount = (c) => {
+    // Say the number in English so choosing also teaches counting.
+    Speech.stop();
+    Speech.speak(c.en, { language: 'en-US', rate: 0.85 });
+    navigation.navigate('Learn', { topic, count: c.n });
   };
 
   return (
@@ -41,22 +45,24 @@ export default function CountScreen({ route, navigation }) {
           <TouchableOpacity
             key={c.n}
             activeOpacity={0.8}
-            onPress={() => onPickCount(c.n)}
+            onPress={() => onPickCount(c)}
             style={styles.card}
+            accessibilityLabel={`${c.n} từ vựng`}
           >
             <View style={[styles.iconBox, { backgroundColor: PAL[c.color], borderBottomColor: PAL[`${c.color}Dark`] }]}>
               <Text style={styles.iconText}>{c.n}</Text>
+              <Text style={styles.iconEn}>{c.en}</Text>
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.cardTitle}>{c.n} từ vựng</Text>
-              <Text style={styles.cardSubtitle}>{c.label} · {c.mins}</Text>
+              <Text style={styles.cardSubtitle}>{c.label}</Text>
               <View style={styles.stars}>
                 {[1,2,3].map(s => (
-                  <Text key={s} style={{ fontSize: 14, opacity: s <= c.stars ? 1 : 0.2 }}>⭐</Text>
+                  <Text key={s} style={{ fontSize: 16, opacity: s <= c.stars ? 1 : 0.2 }}>⭐</Text>
                 ))}
               </View>
             </View>
-            <Text style={{ fontSize: 20, color: PAL.ink, opacity: 0.3 }}>›</Text>
+            <Text style={{ fontSize: 26, color: PAL.ink, opacity: 0.3 }}>›</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -68,7 +74,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: PAL.bg },
   topBar: { paddingHorizontal: 18, paddingTop: 18, paddingBottom: 8 },
   backBtn: {
-    width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.06)',
+    width: 52, height: 52, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.06)',
     alignItems: 'center', justifyContent: 'center'
   },
   header: { paddingHorizontal: 22, paddingTop: 8 },
@@ -86,11 +92,12 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.06, shadowRadius: 10,
   },
   iconBox: {
-    width: 64, height: 64, borderRadius: 20,
+    width: 68, height: 68, borderRadius: 20,
     alignItems: 'center', justifyContent: 'center',
     borderBottomWidth: 4,
   },
-  iconText: { fontSize: 30, fontWeight: '700', color: '#fff' },
+  iconText: { fontSize: 28, fontWeight: '700', color: '#fff', lineHeight: 30 },
+  iconEn: { fontSize: 11, fontWeight: '700', color: '#fff', opacity: 0.9 },
   cardTitle: { fontSize: 19, fontWeight: '700', color: PAL.ink },
   cardSubtitle: { fontSize: 13, color: PAL.ink, opacity: 0.6 },
   stars: { flexDirection: 'row', marginTop: 4, gap: 2 },

@@ -9,6 +9,9 @@ import CountScreen from './src/screens/CountScreen';
 import LearnScreen from './src/screens/LearnScreen';
 import QuizScreen from './src/screens/QuizScreen';
 import ResultScreen from './src/screens/ResultScreen';
+import MatchScreen from './src/screens/MatchScreen';
+import CollectionScreen from './src/screens/CollectionScreen';
+import { ProgressProvider } from './src/context/ProgressContext';
 import { PAL } from './src/theme';
 
 const Stack = createNativeStackNavigator();
@@ -17,21 +20,25 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar barStyle="dark-content" backgroundColor={PAL.bg} />
-      <NavigationContainer>
-        <Stack.Navigator 
-          initialRouteName="Topic"
-          screenOptions={{ 
-            headerShown: false,
-            contentStyle: { backgroundColor: PAL.bg }
-          }}
-        >
-          <Stack.Screen name="Topic" component={TopicScreen} />
-          <Stack.Screen name="Count" component={CountScreen} />
-          <Stack.Screen name="Learn" component={LearnScreen} />
-          <Stack.Screen name="Quiz" component={QuizScreen} />
-          <Stack.Screen name="Result" component={ResultScreen} />
-        </Stack.Navigator>
-      </NavigationContainer>
+      <ProgressProvider>
+        <NavigationContainer>
+          <Stack.Navigator
+            initialRouteName="Topic"
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: PAL.bg }
+            }}
+          >
+            <Stack.Screen name="Topic" component={TopicScreen} />
+            <Stack.Screen name="Count" component={CountScreen} />
+            <Stack.Screen name="Learn" component={LearnScreen} />
+            <Stack.Screen name="Quiz" component={QuizScreen} />
+            <Stack.Screen name="Match" component={MatchScreen} />
+            <Stack.Screen name="Result" component={ResultScreen} />
+            <Stack.Screen name="Collection" component={CollectionScreen} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </ProgressProvider>
     </SafeAreaProvider>
   );
 }
