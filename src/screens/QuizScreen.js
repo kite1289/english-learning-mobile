@@ -40,16 +40,13 @@ export default function QuizScreen({ route, navigation }) {
     return [...distractors, w].sort(() => Math.random() - 0.5);
   }, [idx, w, distractorPool]);
 
-  // Reset when moving to a new question.
-  useEffect(() => {
-    setAttempted(false);
-    setSolved(false);
-    setWrongSet([]);
-    setShakeMap({});
-  }, [idx]);
 
   const advance = () => {
     if (idx + 1 < words.length) {
+      setAttempted(false);
+      setSolved(false);
+      setWrongSet([]);
+      setShakeMap({});
       setIdx(idx + 1);
     } else {
       navigation.navigate('Match', { topic, words, correct: firstTryRef.current });
