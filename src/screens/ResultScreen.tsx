@@ -26,7 +26,13 @@ export default function ResultScreen({ route, navigation }: Props) {
 
   const [showStars, setShowStars] = useState(0);
   const [showScore, setShowScore] = useState(0);
-  const [reward, setReward] = useState<{ coinsEarned: number; newSticker: any; streak: number } | null>(null);
+  const [reward, setReward] = useState<{
+    coinsEarned: number;
+    newSticker: any;
+    streak: number;
+    streakMilestone?: number | null;
+    streakBonus?: number;
+  } | null>(null);
   const awardedRef = useRef(false);
 
   useEffect(() => {
@@ -101,9 +107,19 @@ export default function ResultScreen({ route, navigation }: Props) {
         {reward?.newSticker && (
           <Pop entrance popKey="sticker" style={styles.stickerCard}>
             <Text style={styles.stickerEmoji}>{reward.newSticker.emoji}</Text>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={styles.stickerTitle}>Bé nhận được sticker mới!</Text>
               <Text style={styles.stickerName}>{reward.newSticker.name}</Text>
+            </View>
+          </Pop>
+        )}
+
+        {reward?.streakMilestone && (
+          <Pop entrance popKey="streakMilestone" style={[styles.stickerCard, { borderColor: PAL.coral }]}>
+            <Text style={styles.stickerEmoji}>🎁</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.stickerTitle}>Siêu đẳng! Chuỗi {reward.streakMilestone} ngày!</Text>
+              <Text style={styles.stickerName}>Bé nhận rương xu thưởng +{reward.streakBonus} 🪙</Text>
             </View>
           </Pop>
         )}

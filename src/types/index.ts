@@ -36,6 +36,10 @@ export interface Progress {
   outfit: string;
   ownedOutfits: string[];
   placedStickers?: PlacedSticker[];
+  activeTheme?: string;
+  ownedThemes?: string[];
+  dailyQuests?: DailyQuests;
+  lastQuestDate?: string | null;
 }
 
 export interface PlacedSticker {
@@ -44,3 +48,19 @@ export interface PlacedSticker {
   x: number;
   y: number;
 }
+
+export interface DailyQuest {
+  id: string;
+  title: string;
+  target: number;
+  current: number;
+  rewardCoins: number;
+  claimed: boolean;
+}
+
+export interface DailyQuests {
+  lessons: DailyQuest;
+  perfect: DailyQuest;
+  streak: DailyQuest;
+}
+

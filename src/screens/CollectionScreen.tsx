@@ -18,6 +18,20 @@ const { width: screenWidth } = Dimensions.get('window');
 const BOARD_WIDTH = screenWidth - 44;
 const BOARD_HEIGHT = 200;
 
+interface ThemeItem {
+  id: string;
+  name: string;
+  emoji: string;
+  price: number;
+}
+
+const THEMES: ThemeItem[] = [
+  { id: 'garden', name: 'Khu vườn', emoji: '🏡', price: 0 },
+  { id: 'ocean', name: 'Đại dương', emoji: '🌊', price: 50 },
+  { id: 'space', name: 'Vũ trụ', emoji: '🚀', price: 100 },
+  { id: 'candy', name: 'Kẹo ngọt', emoji: '🍬', price: 80 },
+];
+
 interface DraggableStickerProps {
   sticker: PlacedSticker;
   onDragStart: () => void;
@@ -84,9 +98,23 @@ const DraggableSticker = ({ sticker, onDragStart, onDragEnd, onRemove }: Draggab
 export default function CollectionScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const progressState = useProgress();
-  const { coins, stickers = [], outfit, ownedOutfits = ['none'], placedStickers = [], buyOutfit, equipOutfit, persist } = progressState;
+  const { 
+    coins, 
+    stickers = [], 
+    outfit, 
+    ownedOutfits = ['none'], 
+    placedStickers = [], 
+    buyOutfit, 
+    equipOutfit, 
+    persist,
+    activeTheme = 'garden',
+    ownedThemes = ['garden'],
+    buyTheme,
+    equipTheme
+  } = progressState;
 
   const [scrollEnabled, setScrollEnabled] = useState(true);
+  const [activeTab, setActiveTab] = useState<'outfits' | 'stickers' | 'themes'>('outfits');
 
   const onPressOutfit = (o: Outfit) => {
     if (o.id === outfit) return;
@@ -141,12 +169,7 @@ export default function CollectionScreen({ navigation }: Props) {
 
   const savePlacedStickers = (updated: PlacedSticker[]) => {
     persist({
-      coins: progressState.coins,
-      stickers: progressState.stickers,
-      streak: progressState.streak,
-      lastPlayed: progressState.lastPlayed,
-      outfit: progressState.outfit,
-      ownedOutfits: progressState.ownedOutfits,
+      ...progressState,
       placedStickers: updated,
     });
   };
@@ -173,15 +196,59 @@ export default function CollectionScreen({ navigation }: Props) {
         {/* --- Sticker Board Canvas --- */}
         <Text style={styles.sectionTitle}>Tranh dán sticker của bé 🎨</Text>
         <View style={styles.boardContainer}>
-          <View style={styles.stickerBoard}>
+          <View style={[
+            styles.stickerBoard,
+            activeTheme === 'ocean' && styles.bgOcean,
+            activeTheme === 'space' && styles.bgSpace,
+            activeTheme === 'candy' && styles.bgCandy,
+          ]}>
             {/* Sky Background Decor */}
-            <View style={styles.skyCloud} />
-            {/* Grass Decor */}
-            <View style={styles.grassGround} />
+            {activeTheme === 'garden' && (
+              <>
+                <View style={styles.skyCloud} />
+                <View style={styles.grassGround} />
+              </>
+            )}
+
+            {/* Ocean Decor */}
+            {activeTheme === 'ocean' && (
+              <>
+                <View style={[styles.bubble, { left: 40, top: 30 }]} />
+                <View style={[styles.bubble, { left: 180, top: 50 }]} />
+                <View style={[styles.bubble, { left: 100, top: 90 }]} />
+                <View style={[styles.bubble, { left: 240, top: 110 }]} />
+                <View style={styles.oceanFloor} />
+              </>
+            )}
+
+            {/* Space Decor */}
+            {activeTheme === 'space' && (
+              <>
+                <View style={[styles.starSpace, { left: 50, top: 30 }]} />
+                <View style={[styles.starSpace, { left: 190, top: 40 }]} />
+                <View style={[styles.starSpace, { left: 100, top: 80 }]} />
+                <View style={[styles.starSpace, { left: 260, top: 120 }]} />
+                <View style={styles.planet} />
+              </>
+            )}
+
+            {/* Candy Decor */}
+            {activeTheme === 'candy' && (
+              <>
+                <View style={[styles.marshmallow, { left: 35, top: 30 }]} />
+                <View style={[styles.marshmallow, { left: 210, top: 45 }]} />
+                <View style={styles.candyFloor} />
+              </>
+            )}
 
             {placedStickers.length === 0 && (
               <View style={styles.boardPlaceholder}>
-                <Text style={styles.placeholderText}>Bấm sticker của bé bên dưới{'\n'}để dán lên bức tranh này nhé! 🐻🌴</Text>
+                <Text style={[
+                  styles.placeholderText,
+                  activeTheme === 'ocean' && { color: '#EAF2F8' },
+                  activeTheme === 'space' && { color: '#EAECEE' },
+                  activeTheme === 'candy' && { color: '#78281F' },
+                ]}>Bấm sticker của bé bên dưới{'\n'}để dán lên bức tranh này nhé! 🐻🌴</Text>
               </View>
             )}
 
@@ -202,53 +269,141 @@ export default function CollectionScreen({ navigation }: Props) {
           )}
         </View>
 
-        <Text style={styles.sectionTitle}>Trang phục mascot 👕</Text>
-        <View style={styles.outfitGrid}>
-          {OUTFITS.map((o) => {
-            const owned = ownedOutfits.includes(o.id);
-            const equipped = o.id === outfit;
-            const affordable = coins >= o.price;
-
-            let label = `${o.price} 🪙`;
-            let btnStyle: any = styles.btnBuy;
-            if (equipped) { label = 'Đang dùng'; btnStyle = styles.btnEquipped; }
-            else if (owned) { label = 'Dùng'; btnStyle = styles.btnUse; }
-            else if (!affordable) { btnStyle = styles.btnLocked; }
-
-            return (
-              <Pop key={o.id} style={styles.outfitCard} popKey={equipped ? 'eq' : undefined}>
-                <View style={[styles.outfitPreview, equipped && { borderColor: PAL.mintDark }]}>
-                  <Mascot size={60} mood="happy" outfit={o.id} />
-                </View>
-                <Text style={styles.outfitName}>{o.name}</Text>
-                <TouchableOpacity
-                  style={[styles.outfitBtn, btnStyle]}
-                  onPress={() => onPressOutfit(o)}
-                  disabled={equipped}
-                  accessibilityLabel={`${o.name} ${label}`}
-                >
-                  <Text style={[styles.outfitBtnText, (equipped || (!owned && !affordable)) && { color: PAL.ink, opacity: 0.5 }]}>
-                    {label}
-                  </Text>
-                </TouchableOpacity>
-              </Pop>
-            );
-          })}
+        {/* --- Tab Selector --- */}
+        <View style={styles.tabBar}>
+          <TouchableOpacity 
+            style={[styles.tabItem, activeTab === 'outfits' && styles.activeTabItem]} 
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+              setActiveTab('outfits');
+            }}
+          >
+            <Text style={[styles.tabText, activeTab === 'outfits' && styles.activeTabText]}>Trang phục 👕</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.tabItem, activeTab === 'stickers' && styles.activeTabItem]} 
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+              setActiveTab('stickers');
+            }}
+          >
+            <Text style={[styles.tabText, activeTab === 'stickers' && styles.activeTabText]}>Sticker ⭐</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.tabItem, activeTab === 'themes' && styles.activeTabItem]} 
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+              setActiveTab('themes');
+            }}
+          >
+            <Text style={[styles.tabText, activeTab === 'themes' && styles.activeTabText]}>Hình nền 🖼️</Text>
+          </TouchableOpacity>
         </View>
 
-        <Text style={styles.sectionTitle}>Sticker của bé ⭐</Text>
-        {stickers.length === 0 ? (
-          <View style={styles.emptyBox}>
-            <Text style={styles.emptyText}>Chưa có sticker nào.{'\n'}Học xong bài để nhận sticker nhé! 🎁</Text>
+        {activeTab === 'outfits' && (
+          <View style={styles.outfitGrid}>
+            {OUTFITS.map((o) => {
+              const owned = ownedOutfits.includes(o.id);
+              const equipped = o.id === outfit;
+              const affordable = coins >= o.price;
+
+              let label = `${o.price} 🪙`;
+              let btnStyle: any = styles.btnBuy;
+              if (equipped) { label = 'Đang dùng'; btnStyle = styles.btnEquipped; }
+              else if (owned) { label = 'Dùng'; btnStyle = styles.btnUse; }
+              else if (!affordable) { btnStyle = styles.btnLocked; }
+
+              return (
+                <Pop key={o.id} style={styles.outfitCard} popKey={equipped ? 'eq' : undefined}>
+                  <View style={[styles.outfitPreview, equipped && { borderColor: PAL.mintDark }]}>
+                    <Mascot size={60} mood="happy" outfit={o.id} />
+                  </View>
+                  <Text style={styles.outfitName}>{o.name}</Text>
+                  <TouchableOpacity
+                    style={[styles.outfitBtn, btnStyle]}
+                    onPress={() => onPressOutfit(o)}
+                    disabled={equipped}
+                    accessibilityLabel={`${o.name} ${label}`}
+                  >
+                    <Text style={[styles.outfitBtnText, (equipped || (!owned && !affordable)) && { color: PAL.ink, opacity: 0.5 }]}>
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                </Pop>
+              );
+            })}
           </View>
-        ) : (
-          <View style={styles.stickerGrid}>
-            {stickers.map((s, i) => (
-              <TouchableOpacity key={s.id || i} style={styles.stickerTile} onPress={() => addStickerToBoard(s.emoji)}>
-                <Text style={styles.stickerEmoji}>{s.emoji}</Text>
-                <Text style={styles.stickerName} numberOfLines={1}>{s.name}</Text>
-              </TouchableOpacity>
-            ))}
+        )}
+
+        {activeTab === 'stickers' && (
+          stickers.length === 0 ? (
+            <View style={styles.emptyBox}>
+              <Text style={styles.emptyText}>Chưa có sticker nào.{'\n'}Học xong bài để nhận sticker nhé! 🎁</Text>
+            </View>
+          ) : (
+            <View style={styles.stickerGrid}>
+              {stickers.map((s, i) => (
+                <TouchableOpacity key={s.id || i} style={styles.stickerTile} onPress={() => addStickerToBoard(s.emoji)}>
+                  <Text style={styles.stickerEmoji}>{s.emoji}</Text>
+                  <Text style={styles.stickerName} numberOfLines={1}>{s.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )
+        )}
+
+        {activeTab === 'themes' && (
+          <View style={styles.outfitGrid}>
+            {THEMES.map((t) => {
+              const owned = ownedThemes.includes(t.id);
+              const equipped = t.id === activeTheme;
+              const affordable = coins >= t.price;
+
+              let label = `${t.price} 🪙`;
+              let btnStyle: any = styles.btnBuy;
+              if (equipped) { label = 'Đang dùng'; btnStyle = styles.btnEquipped; }
+              else if (owned) { label = 'Dùng'; btnStyle = styles.btnUse; }
+              else if (!affordable) { btnStyle = styles.btnLocked; }
+
+              return (
+                <Pop key={t.id} style={styles.outfitCard} popKey={equipped ? 'eq' : undefined}>
+                  <View style={[
+                    styles.themePreview,
+                    t.id === 'garden' && { backgroundColor: '#AED6F1' },
+                    t.id === 'ocean' && { backgroundColor: '#1F618D' },
+                    t.id === 'space' && { backgroundColor: '#1B2631' },
+                    t.id === 'candy' && { backgroundColor: '#FADBD8' },
+                    equipped && { borderColor: PAL.mintDark }
+                  ]}>
+                    <Text style={{ fontSize: 32 }}>{t.emoji}</Text>
+                  </View>
+                  <Text style={styles.outfitName}>{t.name}</Text>
+                  <TouchableOpacity
+                    style={[styles.outfitBtn, btnStyle]}
+                    onPress={() => {
+                      if (equipped) return;
+                      if (owned) {
+                        equipTheme(t.id);
+                        Haptics.selectionAsync().catch(() => {});
+                      } else if (coins >= t.price) {
+                        if (buyTheme(t.id, t.price)) {
+                          playSfx('correct');
+                          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+                        }
+                      } else {
+                        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+                      }
+                    }}
+                    disabled={equipped}
+                    accessibilityLabel={`${t.name} ${label}`}
+                  >
+                    <Text style={[styles.outfitBtnText, (equipped || (!owned && !affordable)) && { color: PAL.ink, opacity: 0.5 }]}>
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                </Pop>
+              );
+            })}
           </View>
         )}
       </ScrollView>
@@ -362,6 +517,122 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: PAL.ink,
     opacity: 0.7,
+  },
+
+  // Tab bar styles
+  tabBar: {
+    flexDirection: 'row',
+    marginHorizontal: 22,
+    marginTop: 20,
+    marginBottom: 16,
+    backgroundColor: 'rgba(0,0,0,0.04)',
+    borderRadius: 16,
+    padding: 4,
+  },
+  tabItem: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 12,
+  },
+  activeTabItem: {
+    backgroundColor: PAL.surface,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: PAL.ink,
+    opacity: 0.6,
+  },
+  activeTabText: {
+    opacity: 1,
+    color: PAL.ink,
+  },
+
+  // Themes preview
+  themePreview: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+
+  // Theme board backgrounds
+  bgOcean: {
+    backgroundColor: '#1F618D',
+    borderColor: '#1A5276',
+  },
+  bgSpace: {
+    backgroundColor: '#1B2631',
+    borderColor: '#2C3E50',
+  },
+  bgCandy: {
+    backgroundColor: '#FADBD8',
+    borderColor: '#F5B7B1',
+  },
+
+  // Ocean decor
+  oceanFloor: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 35,
+    backgroundColor: '#EDBB99',
+  },
+  bubble: {
+    position: 'absolute',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: 'rgba(255,255,255,0.35)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.7)',
+  },
+
+  // Space decor
+  starSpace: {
+    position: 'absolute',
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#fff',
+    opacity: 0.7,
+  },
+  planet: {
+    position: 'absolute',
+    top: 25,
+    right: 35,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#EB984E',
+    opacity: 0.65,
+  },
+
+  // Candy decor
+  candyFloor: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 35,
+    backgroundColor: '#F5B7B1',
+  },
+  marshmallow: {
+    position: 'absolute',
+    width: 24,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#FCF3CF',
+    opacity: 0.75,
   },
 
   // Draggable sticker styles

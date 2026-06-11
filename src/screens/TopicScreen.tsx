@@ -8,12 +8,14 @@ import { getTopics } from '../api/client';
 import { useProgress } from '../context/ProgressContext';
 import { Topic } from '../types';
 import { RootStackParamList } from '../../App';
+import * as Haptics from 'expo-haptics';
+import { playSfx } from '../utils/sfx';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Topic'>;
 
 export default function TopicScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { streak, coins, outfit } = useProgress();
+  const { streak, coins, outfit, dailyQuests, claimQuestReward } = useProgress();
   const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -55,44 +57,106 @@ export default function TopicScreen({ navigation }: Props) {
         </View>
       </View>
 
-      <View style={styles.subtitleContainer}>
-        <Text style={styles.sectionTitle}>Chọn chủ đề</Text>
-        <Text style={styles.sectionSubtitle}>Bé thích học gì nào?</Text>
-      </View>
-
       {loading ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="large" color={PAL.primary} />
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.grid}>
-          {topics.map((t, i) => {
-            const cardBg = t.color ? PAL[t.color] : PAL.primary;
-            const textColor = readableOn(cardBg);
-            return (
-              <TouchableOpacity
-                key={t.id}
-                activeOpacity={0.8}
-                onPress={() => navigation.navigate('Count', { topic: t })}
-                style={[
-                  styles.topicCard,
-                  {
-                    backgroundColor: cardBg,
-                    transform: [{ rotate: i % 2 === 0 ? '-1deg' : '1deg' }],
-                    shadowColor: t.color ? PAL[`${t.color}Dark`] : PAL.primaryDark,
-                  }
-                ]}
-              >
-                <View style={styles.cardBgDeco1} />
-                <View style={styles.cardBgDeco2} />
-                <Text style={styles.emojiText}>{t.emoji}</Text>
-                <View>
-                  <Text style={[styles.cardEn, { color: textColor }]}>{t.name_en}</Text>
-                  <Text style={[styles.cardVi, { color: textColor, opacity: 0.75 }]}>{t.name_vi}</Text>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
+        <ScrollView contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+          {/* --- Daily Quests Card --- */}
+          {dailyQuests && (
+            <View style={styles.questsCard}>
+              <Text style={styles.questsHeader}>Nhiệm vụ hôm nay 🎯</Text>
+              
+              {(Object.keys(dailyQuests) as Array<keyof typeof dailyQuests>).map((key) => {
+                const quest = dailyQuests[key];
+                const isCompleted = quest.current >= quest.target;
+                const isClaimed = quest.claimed;
+                
+                let emoji = '⭐️';
+                if (key === 'lessons') emoji = '📖';
+                if (key === 'perfect') emoji = '🏆';
+                if (key === 'streak') emoji = '🔥';
+                
+                return (
+                  <View key={quest.id} style={styles.questItem}>
+                    <View style={styles.questIconContainer}>
+                      <Text style={styles.questIcon}>{emoji}</Text>
+                    </View>
+                    
+                    <View style={styles.questInfo}>
+                      <Text style={styles.questTitle}>{quest.title}</Text>
+                      
+                      {/* Progress bar */}
+                      <View style={styles.progressContainer}>
+                        <View style={[styles.progressBar, { width: `${(quest.current / quest.target) * 100}%` }]} />
+                        <Text style={styles.progressText}>
+                          {quest.current}/{quest.target}
+                        </Text>
+                      </View>
+                    </View>
+                    
+                    {isClaimed ? (
+                      <View style={styles.btnClaimed}>
+                        <Text style={styles.btnClaimedText}>Đã nhận ✓</Text>
+                      </View>
+                    ) : isCompleted ? (
+                      <TouchableOpacity
+                        style={styles.btnClaim}
+                        onPress={() => {
+                          claimQuestReward(key);
+                          playSfx('correct');
+                          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+                        }}
+                      >
+                        <Text style={styles.btnClaimText}>Nhận 🎁</Text>
+                        <Text style={styles.btnRewardText}>+{quest.rewardCoins}🪙</Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <View style={styles.btnLocked}>
+                        <Text style={styles.btnLockedText}>+{quest.rewardCoins} xu</Text>
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+          )}
+
+          <View style={styles.subtitleContainer}>
+            <Text style={styles.sectionTitle}>Chọn chủ đề</Text>
+            <Text style={styles.sectionSubtitle}>Bé thích học gì nào?</Text>
+          </View>
+
+          <View style={styles.grid}>
+            {topics.map((t, i) => {
+              const cardBg = t.color ? PAL[t.color] : PAL.primary;
+              const textColor = readableOn(cardBg);
+              return (
+                <TouchableOpacity
+                  key={t.id}
+                  activeOpacity={0.8}
+                  onPress={() => navigation.navigate('Count', { topic: t })}
+                  style={[
+                    styles.topicCard,
+                    {
+                      backgroundColor: cardBg,
+                      transform: [{ rotate: i % 2 === 0 ? '-1deg' : '1deg' }],
+                      shadowColor: t.color ? PAL[`${t.color}Dark`] : PAL.primaryDark,
+                    }
+                  ]}
+                >
+                  <View style={styles.cardBgDeco1} />
+                  <View style={styles.cardBgDeco2} />
+                  <Text style={styles.emojiText}>{t.emoji}</Text>
+                  <View>
+                    <Text style={[styles.cardEn, { color: textColor }]}>{t.name_en}</Text>
+                    <Text style={[styles.cardVi, { color: textColor, opacity: 0.75 }]}>{t.name_vi}</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </ScrollView>
       )}
     </View>
@@ -141,4 +205,121 @@ const styles = StyleSheet.create({
   emojiText: { fontSize: 56, lineHeight: 65 },
   cardEn: { fontSize: 22, color: '#fff', fontWeight: '700' },
   cardVi: { fontSize: 13, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
+  
+  // Daily Quests styles
+  questsCard: {
+    marginHorizontal: 22,
+    marginTop: 18,
+    backgroundColor: PAL.surface,
+    borderRadius: 24,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+  },
+  questsHeader: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: PAL.ink,
+    marginBottom: 10,
+  },
+  questItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 6,
+    gap: 10,
+  },
+  questIconContainer: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(0,0,0,0.04)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  questIcon: {
+    fontSize: 18,
+  },
+  questInfo: {
+    flex: 1,
+  },
+  questTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: PAL.ink,
+  },
+  progressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 14,
+    backgroundColor: 'rgba(0,0,0,0.06)',
+    borderRadius: 7,
+    marginTop: 3,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: PAL.mint,
+    borderRadius: 7,
+  },
+  progressText: {
+    position: 'absolute',
+    right: 8,
+    fontSize: 9,
+    fontWeight: '800',
+    color: PAL.ink,
+  },
+  btnClaim: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: PAL.primary,
+    borderBottomWidth: 3,
+    borderBottomColor: PAL.primaryDark,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 74,
+  },
+  btnClaimText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  btnRewardText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  btnClaimed: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0,0,0,0.04)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 74,
+  },
+  btnClaimedText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: PAL.ink,
+    opacity: 0.4,
+  },
+  btnLocked: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0,0,0,0.04)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 74,
+  },
+  btnLockedText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: PAL.ink,
+    opacity: 0.4,
+  },
 });
