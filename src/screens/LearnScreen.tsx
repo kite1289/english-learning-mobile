@@ -1,28 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { PAL } from '../theme';
 import { getWordsByTopic } from '../api/client';
 import { usePronunciationAudio } from '../utils/audio';
+import { getCachedAssetUri, preloadAssets } from '../utils/cache';
 import Pop from '../components/Pop';
+import { Word } from '../types';
+import { RootStackParamList } from '../../App';
 
-export default function LearnScreen({ route, navigation }) {
+type Props = NativeStackScreenProps<RootStackParamList, 'Learn'>;
+
+export default function LearnScreen({ route, navigation }: Props) {
   const { topic, count } = route.params;
   const insets = useSafeAreaInsets();
   
-  const [words, setWords] = useState([]);
-  const [allWords, setAllWords] = useState([]);
+  const [words, setWords] = useState<Word[]>([]);
+  const [allWords, setAllWords] = useState<Word[]>([]);
   const [idx, setIdx] = useState(0);
   const [loading, setLoading] = useState(true);
 
+  const [cachedImageUrl, setCachedImageUrl] = useState<string | null>(null);
+  const [cachedAudioUrl, setCachedAudioUrl] = useState<string | null>(null);
+
   useEffect(() => {
     getWordsByTopic(topic.id).then(data => {
-      // Keep the full topic list (for richer quiz distractors) and pick `count` to study.
       const list = Array.isArray(data) ? data : [];
       const shuffled = [...list].sort(() => 0.5 - Math.random());
+      const selected = shuffled.slice(0, count);
       setAllWords(list);
-      setWords(shuffled.slice(0, count));
+      setWords(selected);
       setLoading(false);
+
+      // Pre-load all assets for the topic in the background
+      const urlsToPreload = list.flatMap(w => [w.image_url, w.audio_url]);
+      preloadAssets(urlsToPreload);
     }).catch(err => {
       console.log('Error fetching words:', err);
       setLoading(false);
@@ -30,7 +43,26 @@ export default function LearnScreen({ route, navigation }) {
   }, [topic.id, count]);
 
   const currentWord = words[idx];
-  const { play: playSound } = usePronunciationAudio(currentWord?.audio_url, {
+
+  // Resolve cached asset URIs whenever current word changes
+  useEffect(() => {
+    if (!currentWord) return;
+    setCachedImageUrl(currentWord.image_url || null);
+    setCachedAudioUrl(currentWord.audio_url || null);
+
+    if (currentWord.image_url) {
+      getCachedAssetUri(currentWord.image_url).then(uri => {
+        if (uri) setCachedImageUrl(uri);
+      });
+    }
+    if (currentWord.audio_url) {
+      getCachedAssetUri(currentWord.audio_url).then(uri => {
+        if (uri) setCachedAudioUrl(uri);
+      });
+    }
+  }, [currentWord, idx]);
+
+  const { play: playSound } = usePronunciationAudio(cachedAudioUrl, {
     autoPlayKey: idx,
     autoPlayDelay: 300,
     fallbackText: currentWord?.word_en,
@@ -88,8 +120,8 @@ export default function LearnScreen({ route, navigation }) {
         <Pop entrance popKey={idx} style={[styles.card, { borderColor: tColor + '40', shadowColor: tColorDark }]}>
           <View style={[styles.cardDeco1, { backgroundColor: tColor + '40' }]} />
 
-          {currentWord.image_url ? (
-            <Image source={{ uri: currentWord.image_url }} style={styles.cardImage} resizeMode="contain" />
+          {cachedImageUrl ? (
+            <Image source={{ uri: cachedImageUrl }} style={styles.cardImage} resizeMode="contain" />
           ) : (
             <Text style={styles.cardEmoji}>{currentWord.emoji || '❓'}</Text>
           )}

@@ -13,8 +13,19 @@ import MatchScreen from './src/screens/MatchScreen';
 import CollectionScreen from './src/screens/CollectionScreen';
 import { ProgressProvider } from './src/context/ProgressContext';
 import { PAL } from './src/theme';
+import { Topic, Word } from './src/types';
 
-const Stack = createNativeStackNavigator();
+export type RootStackParamList = {
+  Topic: undefined;
+  Count: { topic: Topic };
+  Learn: { topic: Topic; count: number };
+  Quiz: { topic: Topic; words: Word[]; allWords: Word[] };
+  Match: { topic: Topic; words: Word[]; correct: number };
+  Result: { topic: Topic; words: Word[]; correct: number };
+  Collection: undefined;
+};
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
   return (

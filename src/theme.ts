@@ -1,4 +1,21 @@
-export const PAL = {
+export interface Palette {
+  bg: string;
+  surface: string;
+  ink: string;
+  primary: string;
+  primaryDark: string;
+  coral: string;
+  coralDark: string;
+  mint: string;
+  mintDark: string;
+  lavender: string;
+  lavenderDark: string;
+  sky: string;
+  skyDark: string;
+  [key: string]: string; // Allow dynamic key lookup
+}
+
+export const PAL: Palette = {
   bg: '#FFF6E5',
   surface: '#FFFFFF',
   ink: '#2D2A4A',
@@ -17,7 +34,7 @@ export const PAL = {
 // Pick a readable text color (dark ink vs white) for a given background hex,
 // based on perceived luminance. Light/saturated backgrounds (yellow, mint) get
 // dark text so contrast meets accessibility for young readers + parents.
-export const readableOn = (hex) => {
+export const readableOn = (hex?: string | null): string => {
   if (!hex || hex[0] !== '#') return '#fff';
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);

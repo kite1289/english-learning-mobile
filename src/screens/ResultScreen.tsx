@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
 import Mascot from '../components/Mascot';
 import Confetti from '../components/Confetti';
@@ -8,8 +9,11 @@ import Pop from '../components/Pop';
 import { PAL } from '../theme';
 import { playSfx } from '../utils/sfx';
 import { useProgress } from '../context/ProgressContext';
+import { RootStackParamList } from '../../App';
 
-export default function ResultScreen({ route, navigation }) {
+type Props = NativeStackScreenProps<RootStackParamList, 'Result'>;
+
+export default function ResultScreen({ route, navigation }: Props) {
   const { topic, words, correct } = route.params;
   const insets = useSafeAreaInsets();
   const { coins, outfit, completeLesson } = useProgress();
@@ -22,7 +26,7 @@ export default function ResultScreen({ route, navigation }) {
 
   const [showStars, setShowStars] = useState(0);
   const [showScore, setShowScore] = useState(0);
-  const [reward, setReward] = useState(null); // { coinsEarned, newSticker, streak }
+  const [reward, setReward] = useState<{ coinsEarned: number; newSticker: any; streak: number } | null>(null);
   const awardedRef = useRef(false);
 
   useEffect(() => {
@@ -55,7 +59,7 @@ export default function ResultScreen({ route, navigation }) {
     return () => { clearInterval(t1); clearInterval(t2); };
   }, [stars, score]);
 
-  const messages = { 1: 'Hoàn thành rồi! 🌟', 2: 'Giỏi lắm! 🎉', 3: 'Siêu sao! 🏆' };
+  const messages: Record<number, string> = { 1: 'Hoàn thành rồi! 🌟', 2: 'Giỏi lắm! 🎉', 3: 'Siêu sao! 🏆' };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
@@ -63,7 +67,7 @@ export default function ResultScreen({ route, navigation }) {
       <View style={styles.content}>
         <Mascot size={140} mood={stars === 3 ? 'wow' : 'happy'} outfit={outfit} />
 
-        <Text style={styles.title}>{messages[stars]}</Text>
+        <Text style={styles.title}>{messages[stars] || 'Tuyệt vời!'}</Text>
         <Text style={styles.subtitle}>Bé hoàn thành chủ đề {topic.name_vi.toLowerCase()}!</Text>
 
         <View style={styles.starsContainer}>
@@ -150,9 +154,4 @@ const styles = StyleSheet.create({
     alignItems: 'center', borderBottomWidth: 5,
   },
   btnPrimaryText: { fontSize: 20, fontWeight: '700', color: '#fff' },
-  btnSecondary: {
-    width: '100%', borderRadius: 22, paddingVertical: 18,
-    alignItems: 'center', backgroundColor: PAL.surface, borderBottomWidth: 5, borderBottomColor: 'rgba(0,0,0,0.08)',
-  },
-  btnSecondaryText: { fontSize: 20, fontWeight: '700', color: PAL.ink },
 });

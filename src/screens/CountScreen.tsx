@@ -1,19 +1,32 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import * as Speech from 'expo-speech';
 import { PAL } from '../theme';
+import { RootStackParamList } from '../../App';
 
-const COUNTS = [
+type Props = NativeStackScreenProps<RootStackParamList, 'Count'>;
+
+interface CountOption {
+  n: number;
+  en: string;
+  label: string;
+  stars: number;
+  color: string;
+}
+
+const COUNTS: CountOption[] = [
   { n: 5,  en: 'Five',    label: 'Dễ thương',    stars: 1, color: 'mint' },
   { n: 10, en: 'Ten',     label: 'Vừa phải',     stars: 2, color: 'primary' },
   { n: 15, en: 'Fifteen', label: 'Siêu trí nhớ', stars: 3, color: 'coral' },
 ];
 
-export default function CountScreen({ route, navigation }) {
+export default function CountScreen({ route, navigation }: Props) {
   const { topic } = route.params;
   const insets = useSafeAreaInsets();
 
-  const onPickCount = (c) => {
+  const onPickCount = (c: CountOption) => {
     navigation.navigate('Learn', { topic, count: c.n });
   };
 

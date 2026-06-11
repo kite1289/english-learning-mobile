@@ -1,15 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Mascot from '../components/Mascot';
 import { PAL, readableOn } from '../theme';
 import { getTopics } from '../api/client';
 import { useProgress } from '../context/ProgressContext';
+import { Topic } from '../types';
+import { RootStackParamList } from '../../App';
 
-export default function TopicScreen({ navigation }) {
+type Props = NativeStackScreenProps<RootStackParamList, 'Topic'>;
+
+export default function TopicScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { streak, coins, outfit } = useProgress();
-  const [topics, setTopics] = useState([]);
+  const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
