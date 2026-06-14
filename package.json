@@ -29,8 +29,8 @@
   },
   "private": true,
   "devDependencies": {
-    "@types/react": "^19.2.17",
+    "@types/react": "~19.1.10",
     "@types/react-native": "^0.72.8",
-    "typescript": "^5.9.3"
+    "typescript": "~5.9.2"
   }
 }
