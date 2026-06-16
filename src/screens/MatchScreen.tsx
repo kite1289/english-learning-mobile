@@ -4,12 +4,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
 import * as Speech from 'expo-speech';
-import { createAudioPlayer } from 'expo-audio';
+import { createAudioPlayer, AudioPlayer } from 'expo-audio';
 import Mascot from '../components/Mascot';
 import Pop from '../components/Pop';
 import Confetti from '../components/Confetti';
 import { PAL } from '../theme';
 import { playSfx } from '../utils/sfx';
+import { applyPlaybackAudioMode } from '../utils/audioMode';
 import { getCachedAssetUri } from '../utils/cache';
 import { Word } from '../types';
 import { RootStackParamList } from '../../App';
@@ -64,6 +65,7 @@ export default function MatchScreen({ route, navigation }: Props) {
   const [busy, setBusy] = useState(false);
   
   const navigatedRef = useRef(false);
+  const soundPlayerRef = useRef<AudioPlayer | null>(null);
 
   // Cache deck images and audio offline
   useEffect(() => {
@@ -98,7 +100,12 @@ export default function MatchScreen({ route, navigation }: Props) {
       return;
     }
     try {
+      await applyPlaybackAudioMode();
+      // Release the previous player so repeated taps don't leak native audio
+      // resources (which eventually breaks playback).
+      soundPlayerRef.current?.remove();
       const player = createAudioPlayer(audioUrl);
+      soundPlayerRef.current = player;
       player.play();
     } catch (err) {
       console.log('Error playing word audio in Match:', err);
@@ -183,6 +190,14 @@ export default function MatchScreen({ route, navigation }: Props) {
     }
   }, [matchedKeys, cachedDeck.length]);
 
+  // Release the word-audio player when leaving the screen.
+  useEffect(() => {
+    return () => {
+      soundPlayerRef.current?.remove();
+      soundPlayerRef.current = null;
+    };
+  }, []);
+
   const matchedPairs = matchedKeys.length / 2;
   const done = matchedKeys.length === cachedDeck.length && cachedDeck.length > 0;
 
@@ -227,7 +242,7 @@ export default function MatchScreen({ route, navigation }: Props) {
             } else if (isSelected) {
               bg = tColor + '24';
               borderColor = tColorDark;
-              shadowColor = tColorDark;
+              shadowColor = 'transparent';
             } else if (card.type === 'audio') {
               bg = tColor;
               borderColor = tColorDark;

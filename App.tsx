@@ -12,8 +12,13 @@ import ResultScreen from './src/screens/ResultScreen';
 import MatchScreen from './src/screens/MatchScreen';
 import CollectionScreen from './src/screens/CollectionScreen';
 import { ProgressProvider } from './src/context/ProgressContext';
+import { initPlaybackAudioModeLifecycle } from './src/utils/audioMode';
 import { PAL } from './src/theme';
 import { Topic, Word } from './src/types';
+
+// Re-apply the playback audio session whenever the app returns to foreground,
+// so audio volume recovers after interruptions / audio-focus loss.
+initPlaybackAudioModeLifecycle();
 
 export type RootStackParamList = {
   Topic: undefined;

@@ -4,12 +4,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
 import * as Speech from 'expo-speech';
-import { Audio } from 'expo-av';
+import {
+  useAudioRecorder,
+  createAudioPlayer,
+  requestRecordingPermissionsAsync,
+  RecordingPresets,
+  AudioPlayer,
+} from 'expo-audio';
 import Mascot from '../components/Mascot';
 import Pop from '../components/Pop';
 import { PAL } from '../theme';
 import { usePronunciationAudio } from '../utils/audio';
 import { playSfx } from '../utils/sfx';
+import { applyPlaybackAudioMode, applyRecordingAudioMode } from '../utils/audioMode';
 import { getCachedAssetUri } from '../utils/cache';
 import { Word } from '../types';
 import { RootStackParamList } from '../../App';
@@ -33,7 +40,8 @@ export default function QuizScreen({ route, navigation }: Props) {
   const w = words[idx];
 
   // Voice recording state
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recordedPlayerRef = useRef<AudioPlayer | null>(null);
   const [recordedUri, setRecordedUri] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
 
@@ -122,23 +130,17 @@ export default function QuizScreen({ route, navigation }: Props) {
   // Recording Logic
   const startRecording = async () => {
     try {
-      const permission = await Audio.requestPermissionsAsync();
-      if (permission.status !== 'granted') {
+      const { granted } = await requestRecordingPermissionsAsync();
+      if (!granted) {
         console.log('Microphone permission not granted');
         return;
       }
 
       Speech.stop();
 
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-      });
-
-      const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
-      setRecording(recording);
+      await applyRecordingAudioMode();
+      await recorder.prepareToRecordAsync();
+      recorder.record();
       setIsRecording(true);
       setRecordedUri(null);
     } catch (err) {
@@ -147,18 +149,15 @@ export default function QuizScreen({ route, navigation }: Props) {
   };
 
   const stopRecording = async () => {
-    if (!recording) return;
+    if (!recorder.isRecording) return;
     setIsRecording(false);
     try {
-      await recording.stopAndUnloadAsync();
-      const uri = recording.getURI();
-      setRecordedUri(uri);
-      setRecording(null);
+      await recorder.stop();
+      setRecordedUri(recorder.uri ?? null);
 
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        playsInSilentModeIOS: true,
-      });
+      // Recording left the iOS session in PlayAndRecord (quiet earpiece route).
+      // Force the playback session back so pronunciation/SFX volume recovers.
+      await applyPlaybackAudioMode(true);
     } catch (err) {
       console.log('Failed to stop recording', err);
     }
@@ -167,8 +166,11 @@ export default function QuizScreen({ route, navigation }: Props) {
   const playRecordedVoice = async () => {
     if (!recordedUri) return;
     try {
-      const { sound } = await Audio.Sound.createAsync({ uri: recordedUri });
-      await sound.playAsync();
+      await applyPlaybackAudioMode();
+      recordedPlayerRef.current?.remove();
+      const player = createAudioPlayer({ uri: recordedUri });
+      recordedPlayerRef.current = player;
+      player.play();
     } catch (err) {
       console.log('Failed to play recorded voice', err);
     }
@@ -176,11 +178,15 @@ export default function QuizScreen({ route, navigation }: Props) {
 
   useEffect(() => {
     return () => {
-      if (recording) {
-        recording.stopAndUnloadAsync().catch(() => {});
+      if (recorder.isRecording) {
+        recorder.stop().catch(() => {});
+        // Unmounted mid-recording: restore the playback session too.
+        applyPlaybackAudioMode(true).catch(() => {});
       }
+      recordedPlayerRef.current?.remove();
+      recordedPlayerRef.current = null;
     };
-  }, [recording]);
+  }, [recorder]);
 
   if (!w) return null;
 

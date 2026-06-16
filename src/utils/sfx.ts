@@ -1,4 +1,5 @@
-import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
+import { createAudioPlayer } from 'expo-audio';
+import { applyPlaybackAudioMode } from './audioMode';
 
 // One-shot sound effects (correct / wrong / complete).
 // Players are created lazily and reused so playback is instant.
@@ -7,17 +8,6 @@ const SOURCES: Record<string, any> = {
   correct: require('../../assets/sounds/correct.wav'),
   wrong: require('../../assets/sounds/wrong.wav'),
   complete: require('../../assets/sounds/complete.wav'),
-};
-
-let audioModePromise: Promise<any> | null = null;
-const ensureSfxAudioMode = (): Promise<any> => {
-  if (!audioModePromise) {
-    audioModePromise = setAudioModeAsync({ playsInSilentMode: true }).catch((error) => {
-      audioModePromise = null;
-      console.log('Error configuring sfx audio mode:', error);
-    });
-  }
-  return audioModePromise;
 };
 
 const players: Record<string, any> = {};
@@ -37,7 +27,7 @@ export const playSfx = async (name: string): Promise<void> => {
   const source = SOURCES[name];
   if (!source) return;
   try {
-    await ensureSfxAudioMode();
+    await applyPlaybackAudioMode();
     const player = getPlayer(name);
     if (!player) return;
     player.seekTo(0);

@@ -19,6 +19,14 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Cho phép $(PRODUCT_NAME) dùng micro để bé ghi âm giọng nói khi luyện phát âm."
+        }
+      ]
+    ]
   }
 }

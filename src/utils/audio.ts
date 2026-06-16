@@ -1,23 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import * as Speech from 'expo-speech';
+import { applyPlaybackAudioMode } from './audioMode';
 
-let audioModePromise: Promise<any> | null = null;
-
-const ensurePronunciationAudioMode = async (): Promise<void> => {
-  if (!audioModePromise) {
-    audioModePromise = setAudioModeAsync({
-      playsInSilentMode: true,
-    }).catch((error) => {
-      audioModePromise = null;
-      console.log('Error configuring audio mode:', error);
-    });
-  }
-
-  await audioModePromise;
-};
-
-const getPlaybackRate = (value: any): number => 
+const getPlaybackRate = (value: any): number =>
   typeof value === 'number' && Number.isFinite(value) ? value : 1;
 
 const speakFallback = (text?: string | null, requestedRate = 1): void => {
@@ -60,7 +46,7 @@ export const usePronunciationAudio = (
     }
 
     const playSourceVersion = sourceVersionRef.current;
-    await ensurePronunciationAudioMode();
+    await applyPlaybackAudioMode();
 
     if (playSourceVersion !== sourceVersionRef.current) {
       return;
